@@ -62,7 +62,9 @@ ReviveRecipe: true  # Enable crafting of revival item (DO NOT enabled if the Cus
 # ==LIFEWARS S5 Edition==
 CombatTimer: 400 # this is ticks so 20 ticks is 1 second.
 NetheriteArmorModule: true # if true it prevents the use of netherite armor.
+NetheriteArmorIsBannedMsg: "Netherite armor is banned.."
 NetheriteMeleeModule: true # if true it prevents the use of netherite axe and sword.
+NetheriteMeleeIsBannedMsg: "Netherite sword/axe is banned.."
 TridentModule: true # if true it prevents the use of tridents while in combat.
 Lvl2PotsModule: true # if true it prevents the use of strength 2 and speed 2 while in combat.
 IronPieceMinModule: true # if true it forces players to only have max 3 diamond pieces.

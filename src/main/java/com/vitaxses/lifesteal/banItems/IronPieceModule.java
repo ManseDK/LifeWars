@@ -32,12 +32,12 @@ public class IronPieceModule implements Listener {
         PlayerInventory inventory = player.getInventory();
         int equippedDiamond = countEquippedDiamondArmor(inventory);
 
-        if (event.getSlotType() == InventoryType.SlotType.ARMOR && !event.isShiftClick() && equippedDiamond >= 3) {
+        if (event.getSlotType() == InventoryType.SlotType.ARMOR && !event.isShiftClick() && equippedDiamond == 3) {
             event.setCancelled(true);
         }
 
-        if (event.isShiftClick() && wouldAutoEquip(inventory, item)) {
-            if (equippedDiamond >= 3) {
+        if (event.isShiftClick() && isDiamondArmor(item) && event.getSlot() < 36) {
+            if (equippedDiamond == 3) {
                 event.setCancelled(true);
             }
         }
@@ -65,7 +65,7 @@ public class IronPieceModule implements Listener {
         ItemStack item = event.getItem();
         if (!isDiamondArmor(item)) return;
 
-        if (countEquippedDiamondArmor(player.getInventory()) >= 3) {
+        if (countEquippedDiamondArmor(player.getInventory()) == 3) {
             event.setCancelled(true);
         }
     }
@@ -105,14 +105,5 @@ public class IronPieceModule implements Listener {
             case DIAMOND_HELMET, DIAMOND_CHESTPLATE, DIAMOND_LEGGINGS, DIAMOND_BOOTS -> true;
             default -> false;
         };
-    }
-
-    private boolean wouldAutoEquip(PlayerInventory inventory, ItemStack item) {
-        if (item == null) return false;
-        Material type = item.getType();
-        return (type == Material.DIAMOND_HELMET && inventory.getHelmet() == null) ||
-                (type == Material.DIAMOND_CHESTPLATE && inventory.getChestplate() == null) ||
-                (type == Material.DIAMOND_LEGGINGS && inventory.getLeggings() == null) ||
-                (type == Material.DIAMOND_BOOTS && inventory.getBoots() == null);
     }
 }
