@@ -14,16 +14,17 @@ import java.util.List;
 public class editconfigTab implements TabCompleter {
 
     @Override
-        public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String s, @NotNull String[] args) {
+        public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String s, @NotNull String @NotNull [] args) {
 
             if (args.length == 1) {
-                return StringUtil.copyPartialMatches(args[0], Arrays.asList("Totems", "Trident", "TNTminecart",
-                        "EndCrystal", "RespawnAnchors",
-                        "Over32GoldenApples",
-                        "Netherite", "NoThornsEnchantMent", "CoreLifestealMechanic",
-                        "CustomRecipes", "HeartRecipe","ReviveRecipe",
-                        "Use/EquipHearts","Revive",
-                        "WithdrawCm","Enabled"), new ArrayList<>());
+                return StringUtil.copyPartialMatches(args[0], Arrays.asList(
+                        "features.reviveBookEnabled",
+                        "features.heartUseEnabled",
+                        "features.withdrawCommandEnabled",
+                        "recipes.customRecipesEnabled",
+                        "recipes.heartRecipeEnabled",
+                        "recipes.reviveBookRecipeEnabled"
+                ), new ArrayList<>());
             } else if (args.length == 2) {
                 return StringUtil.copyPartialMatches(args[1], Arrays.asList("true","false"), new ArrayList<>());
             }

@@ -1,74 +1,42 @@
-# If you are new to configuration im here to help you :)
+features:
+  reviveBookEnabled: true
+  heartUseEnabled: true
+  withdrawCommandEnabled: true
 
-# - 'true' means enabled, 'false' means disabled.
-# - Keep the ':' before your statement.
-# - Use messages like this: ("message") for message strings.
+gameplay:
+  maxHealth: 40
+  reviveHealth: 8
+  dropHeartsIfMax: true
 
-Enabled: true
+items:
+  heartName: "<bold><#d9252e>Heart"
+  heartLore: "<gray>Højreklik for at bruge!"
+  reviveBookName: "<aqua>Revive Bog"
+  reviveBookLore: "<dark_aqua>Rename denne bog med det spillernavn, du vil revive, og højreklik for at revive spilleren!"
 
-# ==Easy-Configuration==
+recipes:
+  customRecipesEnabled: true
+  heartRecipeEnabled: true
+  reviveBookRecipeEnabled: true
 
-Revive: true
-# "Revive" is when a player uses the reviveItem
-
-WithdrawCm: true
-# Withdraw can be used as hearts to give other players and crafting recipe's!
-
-MaxHealthPoints: 40  # Maximum health points for players
-# MaxHealthPoints determines the maximum health a player can have on your server.
-
-# HealthPoints:
-# 1 heart is equivalent to 2 health points, so with a value of 40, players
-# have a maximum of 20 hearts. The same with ReviveHealth.
-
-ReviveHealth: 10  # Health granted upon Revive (5 normal hearts!).
-
-Use/EquipHearts: true  # Enable or disable the use and equipping of hearts
-
-# ==Lore&Names==
-HeartLore: "right click to equip/use hearts"
-HeartName: 'Heart'
-
-# Revive item Name is the name of the item!
-ReviveItemName: "Revive-Item"
-# Revive Item Lore is the lore of the item, if you don't know what lore is, it's the message under the Name and is often purple
-ReviveItemLore: "Rename this book with the player(s) name you want to Revive"
-
-# ==Message(s)==
-
-YouDontHaveEnoughHearts: "You don't have enough Hearts to withdraw"
-
-DisabledInConfigMsg: "This is disabled in the config!"
-
-SuccessWithDraw:  "Successfully withdrew "
-
-CantUseBannedItem: " " #Nothing
-
-ReviveAnnouncement: " has just revived: "
-
-EliminatedBanMsg: "Eliminated"
-EliminatedBanMsgAfter1: "Ran out of lives."
-
-# YouCantGoOverMaxHearts is when you try to use the Hearts, but is at maximum hearts.
-YouCantGoOverMaxHearts: "Hey, you cant go over "
-YouCantGoOverMaxHearts2: " Hearts"
-
-# ==Recipe(s)==
-CustomRecipes: true  # Enables the crafting recipes.
-
-HeartRecipe: true  # Enable crafting of hearts (DO NOT enabled if the CustomRecipes is false).
-ReviveRecipe: true  # Enable crafting of revival item (DO NOT enabled if the CustomRecipes is false).
-
-# ==BanItem(s)==
-
-TNTminecart: true  # Allow the use of TNT mine-carts.
-EndCrystal: true  # Allow the use of End Crystals.
-RespawnAnchors: true  # Allow the use of Respawn Anchors.
-Over32GoldenApples: true  # Allow players to have more than 32 golden apples.
-Trident: true  # Allow the use/pickup of tridents.
-Netherite: true  # Allow the use of Netherite items.
-Totems: true  # Allow Totem of Undying.
-NoThornsEnchantMent: false  # Disable the Thorns enchantment.
-
-# ==Should-Not-Be-Edited==
-CoreLifestealMechanic: true
+messages:
+  prefix: "<dark_gray>[<red>Life<gold>Wars<dark_gray>]"
+  usageError: "<red>Usage: %usage%"
+  needToBePlayer: "<red>Du skal være en spiller for at bruge denne command"
+  playerNotFound: "<red>Spiller ikke fundet!"
+  disabledInConfigMsg: "<red>Denne funktion er disabled i config!"
+  eliminateSuccess: "<gray>Du har elimineret <red>%player%<gray>!"
+  reviveSuccess: "<gray>Du har revivet <red>%player%<gray>!"
+  onlyReviveElimPlayers: "<red>Du kan kun revive elimineret spillere!"
+  eliminatedJoin: "<red>Du har ikke flere hjerter!"
+  eliminatedReason: "<dark_red>Ran out of lives."
+  setHeartsConfirmSingle: "<gray>Satte <red>%player%<gray>'s hjerter til <red>%amount%<gray> hjerter"
+  reloadMsg: "<gray>Genindlaeste pluginnet!"
+  noWithdraw: "<red>Du bliver elimineret, hvis du withdrawer et heart!"
+  withdrawMin: "<red>Du kan ikke withdraw mindre end 1 hjerte!"
+  successWithdraw: "<gray>Du fik %amount%x <red>%item%<gray>!"
+  maxHeartLimitReached: "<red>Du har allerede ramt %limit% hjerter!"
+  recipeNotCraftable: "<red>Du kan ikke craft dette item!"
+  recipeNotFound: "<red>Denne recipe eksistere ikke!"
+  configKeyNotFound: "<red>Config key ikke fundet: %key%"
+  configUpdated: "<gray>Config value <red>%key%<gray> sat til <red>%value%"

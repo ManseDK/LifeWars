@@ -2,19 +2,15 @@ package com.vitaxses.lifesteal.commands;
 
 import com.vitaxses.lifesteal.LifeWars;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.util.StringUtil;
-
-import java.util.Arrays;
+import org.jetbrains.annotations.NotNull;
 
 public class Withdraw implements CommandExecutor {
 
@@ -25,20 +21,29 @@ public class Withdraw implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
-        if (!main.getConfig().getBoolean("WithdrawCm")) {
-            commandSender.sendMessage(ChatColor.RED + main.getConfig().getString("DisabledInConfigMsg"));
+    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
+        if (!main.getBoolean("features.withdrawCommandEnabled", "WithdrawCm", true)) {
+            commandSender.sendMessage(main.getPrefixedMessageComponent("disabledInConfigMsg"));
             return true;
         }
 
         if (!(commandSender instanceof Player player)) {
-            commandSender.sendMessage(ChatColor.RED + "Only players can use this command.");
+            commandSender.sendMessage(main.getPrefixedMessageComponent("needToBePlayer"));
             return true;
         }
 
         int number = 1;
-        if (StringUtils.isNumeric(strings[0])) {
+        if (strings.length > 0) {
+            if (!StringUtils.isNumeric(strings[0])) {
+                player.sendMessage(main.formatPrefixedMessageComponent("usageError", "%usage%", "/withdraw <amount>"));
+                return true;
+            }
             number = Integer.parseInt(strings[0]);
+        }
+
+        if (number < 1) {
+            player.sendMessage(main.getPrefixedMessageComponent("withdrawMin"));
+            return true;
         }
 
         int amount = number * 2;
@@ -49,24 +54,24 @@ public class Withdraw implements CommandExecutor {
     }
 
     private void giveItem(Player player, int amount, int heartItem) {
-        double originalHealth = player.getAttribute(Attribute.MAX_HEALTH).getBaseValue();
+        AttributeInstance healthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
+        if (healthAttribute == null) {
+            return;
+        }
+        double originalHealth = healthAttribute.getBaseValue();
         double newHealth = originalHealth - amount;
 
         if (newHealth > 1) {
-            player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(newHealth);
+            healthAttribute.setBaseValue(newHealth);
 
-            ItemStack heart = new ItemStack(Material.FERMENTED_SPIDER_EYE, heartItem);
-            ItemMeta heartMeta = heart.getItemMeta();
-            heartMeta.setDisplayName(ChatColor.BOLD + main.getConfig().getString("HeartName"));
-            heartMeta.setLore(Arrays.asList(ChatColor.WHITE + main.getConfig().getString("HeartLore")));
-            heart.setItemMeta(heartMeta);
+            ItemStack heart = main.createHeartItem(heartItem);
 
             player.getInventory().addItem(heart);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 1.5f, 1.5f);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_DEATH, 1.5f, 1.5f);
-            player.sendMessage(ChatColor.GREEN + main.getConfig().getString("SuccessWithDraw") + heartItem + " " + ChatColor.BOLD + "Heart(s)");
+            player.sendMessage(main.formatPrefixedMessageComponent("successWithdraw", "%amount%", String.valueOf(heartItem), "%item%", "Heart(s)"));
         } else {
-            player.sendMessage(ChatColor.RED + main.getConfig().getString("YouDontHaveEnoughHearts"));
+            player.sendMessage(main.getPrefixedMessageComponent("noWithdraw"));
         }
     }
 }

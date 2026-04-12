@@ -1,47 +1,30 @@
 package com.vitaxses.lifesteal.commands;
 
 import com.vitaxses.lifesteal.LifeWars;
-import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Locale;
 
 public class AdminRevive implements CommandExecutor {
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (sender instanceof Player) {
-            // IS PLAYER!
-            Player player = (Player) sender;
-
-            if (args.length == 1) {
-                String playerName = args[0];
-                BanList banList = Bukkit.getBanList(BanList.Type.NAME);
-
-                if (banList.isBanned(playerName) && LifeWars.getInstance().getBannedPlayers(true).contains(playerName.toLowerCase())) {
-                    unbanPlayer(playerName);
-                    player.sendMessage(playerName + " has been unbanned.");
-                } else {
-                    player.sendMessage(playerName + " is not banned.");
-                }
-                return true;
-            }
-        } else {
-            if (args.length == 1) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
+        LifeWars main = LifeWars.getInstance();
+        if (args.length == 1) {
             String playerName = args[0];
-            BanList banList = Bukkit.getBanList(BanList.Type.NAME);
-
-            if (banList.isBanned(playerName) && LifeWars.getInstance().getBannedPlayers(true).contains(playerName.toLowerCase())) {
+            if (main.getBannedPlayers(true).contains(playerName.toLowerCase(Locale.ROOT))) {
                 unbanPlayer(playerName);
-                sender.sendMessage(playerName + " has been unbanned.");
+                Bukkit.broadcast(main.formatPrefixedMessageComponent("reviveSuccess", "%player%", playerName));
             } else {
-                sender.sendMessage(playerName + " is not banned.");
+                sender.sendMessage(main.getPrefixedMessageComponent("onlyReviveElimPlayers"));
             }
             return true;
-        }}
-        return false;
+        }
+        sender.sendMessage(main.formatPrefixedMessageComponent("usageError", "%usage%", "/adminrevive <player>"));
+        return true;
     }
 
 

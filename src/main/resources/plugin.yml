@@ -1,9 +1,9 @@
 name: LifeWars
-version: '1.0'
+version: '1.0.1'
 main: com.vitaxses.lifesteal.LifeWars
 api-version: '1.21'
-authors: [ Vitaxses ]
-description: Lifesteal plugins :) (Made by Vitaxses)
+authors: [ Vitaxses, Manse ]
+description: LifeWars plugin :) (Forked from Vitaxses & updated by Manse)
 commands:
   editconfig:
     description: edit configuration with commands, (Messages not included).

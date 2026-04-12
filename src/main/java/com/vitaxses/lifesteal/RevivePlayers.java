@@ -1,17 +1,23 @@
 package com.vitaxses.lifesteal;
 
-import org.bukkit.*;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import java.util.Arrays;
+
+import java.util.List;
+import java.util.Locale;
 
 public class RevivePlayers implements Listener {
 
-    private LifeWars main;
+    private final LifeWars main;
 
     public RevivePlayers(LifeWars main) {
         this.main = main;
@@ -19,59 +25,67 @@ public class RevivePlayers implements Listener {
 
     @EventHandler
     public void InteractRevive(PlayerInteractEvent event) {
-
-        if (main.getConfig().getBoolean("Revive")) {
-
-            Player player = event.getPlayer();
-            ItemStack reviveItem = event.getItem();
-            Action action = event.getAction();
-
-            if (reviveItem != null) {
-                if (reviveItem.getType() == Material.ENCHANTED_BOOK) {
-                    if (reviveItem.getItemMeta().getLore() != null && reviveItem.getItemMeta().getLore().equals(Arrays.asList(ChatColor.DARK_AQUA + main.getConfig().getString("ReviveItemLore") ) ) ) {
-                        if (!reviveItem.getItemMeta().getDisplayName().equals(ChatColor.AQUA + main.getConfig().getString("ReviveItemName") ) ) {
-                            String NameOfBookPlayer = reviveItem.getItemMeta().getDisplayName();
-                            if (action == Action.RIGHT_CLICK_BLOCK || action == Action.RIGHT_CLICK_AIR) {
-                                BanList banlist = Bukkit.getBanList(BanList.Type.NAME);
-                                if (banlist.isBanned(NameOfBookPlayer) && main.getBannedPlayers(true).contains(NameOfBookPlayer.toLowerCase())) {
-                                    main.getLogger().info("checking if banned!");
-
-                                    unbanPlayer(player, NameOfBookPlayer);
-                                    main.getLogger().info("Success with unbanning player!");
-                                    player.getItemInHand().setType(Material.AIR);
-                                    reviveItem.setType(Material.AIR);
-                                    player.updateInventory();
-
-                                    int reviveMaxHealth = main.getConfig().getInt("ReviveHealth");
-
-                                    if (reviveMaxHealth < 0) {
-                                        reviveMaxHealth = 6;
-                                        main.getLogger().warning("ReviveMaxHealth in config is 0 or under, please select higher value!");
-                                        main.getLogger().warning("Set the ReviveMaxHealth to 6 (3 hearts)!");
-                                    }
-
-                                } else {
-                                    player.sendMessage(ChatColor.RED + NameOfBookPlayer + " is not banned!");
-                                }
-                            }
-                        }
-                    } else {
-                        player.sendActionBar("no bugs, please!");
-                    }
-                }
-            }
+        if (!main.getBoolean("features.reviveBookEnabled", "Revive", true)) {
+            return;
         }
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        ItemStack reviveBook = event.getItem();
+        if (reviveBook == null || reviveBook.getType() != Material.ENCHANTED_BOOK || !reviveBook.hasItemMeta()) {
+            return;
+        }
+
+        List<Component> expectedLore = main.createReviveBook().getItemMeta().lore();
+        List<Component> actualLore = reviveBook.getItemMeta().lore();
+        if (actualLore == null || expectedLore == null || !actualLore.equals(expectedLore)) {
+            player.sendActionBar(main.getMessageComponent("recipeNotFound"));
+            return;
+        }
+
+        Component display = reviveBook.getItemMeta().displayName();
+        if (display == null) {
+            return;
+        }
+
+        String targetName = main.toPlainText(display).trim();
+        if (targetName.isEmpty() || targetName.equalsIgnoreCase(main.getReviveBookTemplateNamePlain())) {
+            player.sendMessage(main.formatPrefixedMessageComponent("usageError", "%usage%", "Rename the Revive Book to the target player's name"));
+            return;
+        }
+
+        if (!main.getBannedPlayers(true).contains(targetName.toLowerCase(Locale.ROOT))) {
+            player.sendMessage(main.getPrefixedMessageComponent("onlyReviveElimPlayers"));
+            return;
+        }
+
+        unbanPlayer(player, targetName);
+        consumeOneBook(player);
     }
 
     public void unbanPlayer(Player player, String playerName) {
-        ItemStack nothing = new ItemStack(Material.AIR);
-
+        main.RemoveBannedPlayer(playerName, true);
         String command = "pardon " + playerName;
         Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
 
-        Bukkit.broadcastMessage(ChatColor.GREEN + player.getName()+ main.getConfig().getString("ReviveAnnouncement") + ChatColor.YELLOW + playerName);
+        Bukkit.broadcast(main.formatPrefixedMessageComponent("reviveSuccess", "%player%", playerName));
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-        player.setItemInHand(nothing);
+    }
+
+    private void consumeOneBook(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand.getAmount() <= 1) {
+            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+            return;
+        }
+        hand.setAmount(hand.getAmount() - 1);
     }
 
 }

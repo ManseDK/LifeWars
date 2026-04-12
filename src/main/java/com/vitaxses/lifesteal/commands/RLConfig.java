@@ -7,17 +7,16 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 public class RLConfig implements CommandExecutor {
-    private LifeWars main;
+    private final LifeWars main;
 
     public RLConfig(LifeWars main) {
         this.main = main;
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
-        main.saveDefaultConfig();
+    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] strings) {
         main.reloadConfig();
-        commandSender.sendMessage("Reloaded Config!");
+        commandSender.sendMessage(main.getPrefixedMessageComponent("reloadMsg"));
 
         return true;
     }
