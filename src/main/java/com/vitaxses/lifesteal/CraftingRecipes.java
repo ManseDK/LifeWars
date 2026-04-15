@@ -34,7 +34,6 @@ public class CraftingRecipes {
                 main.getServer().addRecipe(recipe2);
             }
             if (main.getBoolean("recipes.heartRecipeEnabled", "HeartRecipe", true)) {
-                //heart recipe
                 NamespacedKey recipeKey4 = new NamespacedKey(main, "Heart_recipe");
 
                 ItemStack heartresult = main.createHeartItem(1);

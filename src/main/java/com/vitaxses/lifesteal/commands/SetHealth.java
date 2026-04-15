@@ -12,46 +12,51 @@ import org.jetbrains.annotations.NotNull;
 
 public class SetHealth implements CommandExecutor {
 
+    private final LifeWars main;
+
+    public SetHealth(LifeWars main) {
+        this.main = main;
+    }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] strings) {
-        LifeWars main = LifeWars.getInstance();
-
-        if (!(commandSender instanceof Player player)) {
-            commandSender.sendMessage(main.getPrefixedMessageComponent("needToBePlayer"));
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
+                             @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(main.getPrefixedMessageComponent("needToBePlayer"));
             return true;
         }
 
-        if (strings.length != 2) {
+        if (args.length != 2) {
             player.sendMessage(main.formatPrefixedMessageComponent("usageError", "%usage%", "/sethealth <player> <value>"));
             return true;
         }
 
-        String targetPlayerName = strings[0];
         double healthValue;
-
         try {
-            healthValue = Double.parseDouble(strings[1]);
+            healthValue = Double.parseDouble(args[1]);
         } catch (NumberFormatException e) {
             player.sendMessage(main.formatPrefixedMessageComponent("usageError", "%usage%", "/sethealth <player> <value>"));
             return true;
         }
 
-        Player targetPlayer = Bukkit.getPlayer(targetPlayerName);
-
-        if (targetPlayer == null) {
+        Player target = Bukkit.getPlayer(args[0]);
+        if (target == null) {
             player.sendMessage(main.getPrefixedMessageComponent("playerNotFound"));
             return true;
         }
 
-        AttributeInstance targetHealthAttribute = targetPlayer.getAttribute(Attribute.MAX_HEALTH);
-        if (targetHealthAttribute == null) {
+        AttributeInstance healthAttribute = target.getAttribute(Attribute.MAX_HEALTH);
+        if (healthAttribute == null) {
             player.sendMessage(main.getPrefixedMessageComponent("playerNotFound"));
             return true;
         }
 
-        targetHealthAttribute.setBaseValue(healthValue);
-        player.sendMessage(main.formatPrefixedMessageComponent("setHeartsConfirmSingle", "%player%", targetPlayer.getName(), "%amount%", String.valueOf(healthValue / 2)));
+        healthAttribute.setBaseValue(healthValue);
+        player.sendMessage(main.formatPrefixedMessageComponent(
+                "setHeartsConfirmSingle",
+                "%player%", target.getName(),
+                "%amount%", String.valueOf(healthValue / 2)
+        ));
         return true;
     }
 }

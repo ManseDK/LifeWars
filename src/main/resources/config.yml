@@ -21,6 +21,7 @@ recipes:
 
 messages:
   prefix: "<dark_gray>[<red>Life<gold>Wars<dark_gray>]"
+  announceAdminRevive: true
   usageError: "<red>Usage: %usage%"
   needToBePlayer: "<red>Du skal være en spiller for at bruge denne command"
   playerNotFound: "<red>Spiller ikke fundet!"

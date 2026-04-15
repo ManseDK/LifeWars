@@ -24,58 +24,48 @@ public class RevivePlayers implements Listener {
     }
 
     @EventHandler
-    public void InteractRevive(PlayerInteractEvent event) {
-        if (!main.getBoolean("features.reviveBookEnabled", "Revive", true)) {
-            return;
-        }
-        if (event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
+    public void onInteractRevive(PlayerInteractEvent event) {
+        if (!main.getBoolean("features.reviveBookEnabled", "Revive", true)) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
 
         Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) {
-            return;
-        }
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
 
         Player player = event.getPlayer();
-        ItemStack reviveBook = event.getItem();
-        if (reviveBook == null || reviveBook.getType() != Material.ENCHANTED_BOOK || !reviveBook.hasItemMeta()) {
+        ItemStack heldItem = event.getItem();
+
+        if (heldItem == null || heldItem.getType() != Material.ENCHANTED_BOOK || !heldItem.hasItemMeta()) {
             return;
         }
 
         List<Component> expectedLore = main.createReviveBook().getItemMeta().lore();
-        List<Component> actualLore = reviveBook.getItemMeta().lore();
+        List<Component> actualLore = heldItem.getItemMeta().lore();
         if (actualLore == null || expectedLore == null || !actualLore.equals(expectedLore)) {
             player.sendActionBar(main.getMessageComponent("recipeNotFound"));
             return;
         }
 
-        Component display = reviveBook.getItemMeta().displayName();
-        if (display == null) {
-            return;
-        }
+        Component display = heldItem.getItemMeta().displayName();
+        if (display == null) return;
 
         String targetName = main.toPlainText(display).trim();
         if (targetName.isEmpty() || targetName.equalsIgnoreCase(main.getReviveBookTemplateNamePlain())) {
-            player.sendMessage(main.formatPrefixedMessageComponent("usageError", "%usage%", "Rename the Revive Book to the target player's name"));
+            player.sendMessage(main.formatPrefixedMessageComponent(
+                    "usageError", "%usage%", "Rename the Revive Book to the target player's name"));
             return;
         }
 
         if (!main.getBannedPlayers(true).contains(targetName.toLowerCase(Locale.ROOT))) {
-            player.sendMessage(main.getPrefixedMessageComponent("onlyReviveElimPlayers"));
             return;
         }
 
-        unbanPlayer(player, targetName);
+        revivePlayer(player, targetName);
         consumeOneBook(player);
     }
 
-    public void unbanPlayer(Player player, String playerName) {
-        main.RemoveBannedPlayer(playerName, true);
-        String command = "pardon " + playerName;
-        Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
-
-        Bukkit.broadcast(main.formatPrefixedMessageComponent("reviveSuccess", "%player%", playerName));
+    private void revivePlayer(Player player, String targetName) {
+        main.unbanPlayer(targetName);
+        Bukkit.broadcast(main.formatPrefixedMessageComponent("reviveSuccess", "%player%", targetName));
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
     }
 
@@ -83,9 +73,9 @@ public class RevivePlayers implements Listener {
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand.getAmount() <= 1) {
             player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
-            return;
+        } else {
+            hand.setAmount(hand.getAmount() - 1);
         }
-        hand.setAmount(hand.getAmount() - 1);
     }
 
 }

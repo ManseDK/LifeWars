@@ -5,97 +5,112 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class LifeWars extends JavaPlugin {
 
-    private static LifeWars Instance;
+    private static LifeWars instance;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    private static File bannedPlayers;
+    private File bannedPlayersFile;
+    private YamlConfiguration bannedPlayersConfig;
+
+    private void loadBannedPlayersFile() {
+        bannedPlayersFile = new File(getDataFolder(), "BannedPlayers.yml");
+        if (!bannedPlayersFile.exists()) {
+            try {
+                if (!bannedPlayersFile.createNewFile()) {
+                    getLogger().warning("Could not create BannedPlayers.yml");
+                }
+            } catch (IOException e) {
+                getLogger().severe("Error while creating BannedPlayers.yml");
+                throw new RuntimeException(e);
+            }
+        }
+        bannedPlayersConfig = YamlConfiguration.loadConfiguration(bannedPlayersFile);
+    }
+
+    private void saveBannedPlayersFile() {
+        try {
+            bannedPlayersConfig.save(bannedPlayersFile);
+        } catch (IOException e) {
+            getLogger().warning("Error saving BannedPlayers.yml: " + e.getMessage());
+        }
+    }
 
     public List<String> getBannedPlayers(boolean toLower) {
-        List<String> s = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(bannedPlayers))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (toLower) s.add(line.toLowerCase());
-                else s.add(line);
-            }
-        } catch (IOException e) {
-            getLogger().info("Error Reading BannedPlayers.txt");
+        List<String> names = bannedPlayersConfig.getStringList("banned-players");
+        if (toLower) {
+            return names.stream().map(String::toLowerCase).collect(Collectors.toList());
         }
-        return s;
+        return new ArrayList<>(names);
     }
 
-    public void WriteToBannedPlayers(String s) {
-        try (FileWriter writer = new FileWriter(bannedPlayers, true)) {
-            writer.write(s + System.lineSeparator());
-        } catch (IOException e) {
-            getLogger().info("Error Writing To BannedPlayers.txt");
+    public void writeToBannedPlayers(String name) {
+        List<String> names = bannedPlayersConfig.getStringList("banned-players");
+        if (names.stream().noneMatch(n -> n.equalsIgnoreCase(name))) {
+            names.add(name);
+            bannedPlayersConfig.set("banned-players", names);
+            saveBannedPlayersFile();
         }
     }
 
-    public void RemoveBannedPlayer(String s, boolean toLower) {
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(bannedPlayers.toURI()));
-
-            if (toLower) {
-                if (lines.removeIf(line -> line.equalsIgnoreCase(s))) {
-                    Files.write(Paths.get(bannedPlayers.toURI()), lines);
-                }
-            } else if (lines.removeIf(line -> line.equals(s))) {
-                Files.write(Paths.get(bannedPlayers.toURI()), lines);
-            }
-        } catch (IOException e) {
-            getLogger().info("Error While Removing Banned Player From BannedPlayers.txt");
+    public void removeBannedPlayer(String name, boolean ignoreCase) {
+        List<String> names = bannedPlayersConfig.getStringList("banned-players");
+        boolean removed = ignoreCase
+                ? names.removeIf(n -> n.equalsIgnoreCase(name))
+                : names.removeIf(n -> n.equals(name));
+        if (removed) {
+            bannedPlayersConfig.set("banned-players", names);
+            saveBannedPlayersFile();
         }
     }
+
+    public void unbanPlayer(String playerName) {
+        removeBannedPlayer(playerName, true);
+    }
+
+    public void banAndKickPlayer(Player player) {
+        writeToBannedPlayers(player.getName());
+        player.kick(getMessageComponent("eliminatedJoin"));
+    }
+
 
     @Override
     public void onEnable() {
         getConfig().options().copyDefaults(true);
         saveDefaultConfig();
-        Instance = this;
+        instance = this;
 
-        bannedPlayers = new File(getDataFolder(), "BannedPlayers.txt");
-        if (!bannedPlayers.exists()) {
-            try {
-                if (!bannedPlayers.createNewFile()) {
-                    getLogger().warning("Could not create BannedPlayers.txt");
-                }
-            } catch (IOException e) {
-                getLogger().info("Error While Creating BannedPlayers.txt");
-                throw new RuntimeException(e);
-            }
-        }
+        loadBannedPlayersFile();
 
         requireCommand("reloadconfig").setExecutor(new RLConfig(this));
         requireCommand("withdraw").setExecutor(new Withdraw(this));
-        requireCommand("eliminate").setExecutor(new Eliminate());
-        requireCommand("adminrevive").setExecutor(new AdminRevive());
-        requireCommand("sethealth").setExecutor(new SetHealth());
+        requireCommand("eliminate").setExecutor(new Eliminate(this));
+        requireCommand("adminrevive").setExecutor(new AdminRevive(this));
+        requireCommand("sethealth").setExecutor(new SetHealth(this));
         requireCommand("editconfig").setExecutor(new EditConfigCm(this));
-        requireCommand("editconfig").setTabCompleter(new editconfigTab());
+        requireCommand("editconfig").setTabCompleter(new EditConfigTab());
 
-        CraftingRecipes customRecipeHandler = new CraftingRecipes(this);
-        customRecipeHandler.registerRecipe();
+        new CraftingRecipes(this).registerRecipe();
         getServer().getPluginManager().registerEvents(new CoreLifesteal(this), this);
         getServer().getPluginManager().registerEvents(new RevivePlayers(this), this);
-
     }
 
     public static LifeWars getInstance() {
-        return Instance;
+        return instance;
     }
 
     private org.bukkit.command.PluginCommand requireCommand(String name) {
@@ -107,44 +122,30 @@ public final class LifeWars extends JavaPlugin {
     }
 
     public boolean getBoolean(String modernPath, String legacyPath, boolean defaultValue) {
-        if (getConfig().contains(modernPath)) {
-            return getConfig().getBoolean(modernPath);
-        }
-        if (legacyPath != null && getConfig().contains(legacyPath)) {
-            return getConfig().getBoolean(legacyPath);
-        }
+        if (getConfig().contains(modernPath)) return getConfig().getBoolean(modernPath);
+        if (legacyPath != null && getConfig().contains(legacyPath)) return getConfig().getBoolean(legacyPath);
         return defaultValue;
     }
 
     public int getInt(String modernPath, String legacyPath, int defaultValue) {
-        if (getConfig().contains(modernPath)) {
-            return getConfig().getInt(modernPath);
-        }
-        if (legacyPath != null && getConfig().contains(legacyPath)) {
-            return getConfig().getInt(legacyPath);
-        }
+        if (getConfig().contains(modernPath)) return getConfig().getInt(modernPath);
+        if (legacyPath != null && getConfig().contains(legacyPath)) return getConfig().getInt(legacyPath);
         return defaultValue;
     }
 
     public String getString(String modernPath, String legacyPath, String defaultValue) {
-        if (getConfig().contains(modernPath)) {
-            return getConfig().getString(modernPath, defaultValue);
-        }
-        if (legacyPath != null && getConfig().contains(legacyPath)) {
-            return getConfig().getString(legacyPath, defaultValue);
-        }
+        if (getConfig().contains(modernPath)) return getConfig().getString(modernPath, defaultValue);
+        if (legacyPath != null && getConfig().contains(legacyPath)) return getConfig().getString(legacyPath, defaultValue);
         return defaultValue;
     }
 
+
     public Component deserializeText(String raw) {
-        if (raw == null) {
-            return Component.empty();
-        }
+        if (raw == null) return Component.empty();
         if (raw.contains("<") && raw.contains(">")) {
             try {
                 return miniMessage.deserialize(raw);
             } catch (Exception ignored) {
-                // Fallback to legacy parser below
             }
         }
         return LegacyComponentSerializer.legacyAmpersand().deserialize(raw);
@@ -152,9 +153,7 @@ public final class LifeWars extends JavaPlugin {
 
     private String getRawMessage(String key) {
         String modernPath = "messages." + key;
-        if (getConfig().contains(modernPath)) {
-            return getConfig().getString(modernPath, key);
-        }
+        if (getConfig().contains(modernPath)) return getConfig().getString(modernPath, key);
         return getConfig().getString(key, key);
     }
 
@@ -169,9 +168,7 @@ public final class LifeWars extends JavaPlugin {
     public Component getPrefixedMessageComponent(String key) {
         Component prefix = deserializeText(getConfig().getString("messages.prefix", ""));
         Component message = getMessageComponent(key);
-        if (prefix.equals(Component.empty())) {
-            return message;
-        }
+        if (prefix.equals(Component.empty())) return message;
         return prefix.append(Component.space()).append(message);
     }
 
@@ -198,9 +195,7 @@ public final class LifeWars extends JavaPlugin {
     public Component formatPrefixedMessageComponent(String key, String... replacements) {
         Component prefix = deserializeText(getConfig().getString("messages.prefix", ""));
         Component message = formatMessageComponent(key, replacements);
-        if (prefix.equals(Component.empty())) {
-            return message;
-        }
+        if (prefix.equals(Component.empty())) return message;
         return prefix.append(Component.space()).append(message);
     }
 
@@ -211,6 +206,7 @@ public final class LifeWars extends JavaPlugin {
     public String plainMessage(String key) {
         return PlainTextComponentSerializer.plainText().serialize(getMessageComponent(key));
     }
+
 
     public ItemStack createHeartItem(int amount) {
         ItemStack heart = new ItemStack(Material.NETHER_STAR, amount);
@@ -235,9 +231,8 @@ public final class LifeWars extends JavaPlugin {
         if (itemStack == null || itemStack.getType() != Material.NETHER_STAR || !itemStack.hasItemMeta()) {
             return false;
         }
-        ItemMeta meta = itemStack.getItemMeta();
         Component expectedName = deserializeText(getString("items.heartName", "HeartName", "<bold>Heart"));
-        return expectedName.equals(meta.displayName());
+        return expectedName.equals(itemStack.getItemMeta().displayName());
     }
 
     public String getReviveBookTemplateNamePlain() {
@@ -248,5 +243,4 @@ public final class LifeWars extends JavaPlugin {
     public String toPlainText(Component component) {
         return PlainTextComponentSerializer.plainText().serialize(component == null ? Component.empty() : component);
     }
-
 }
