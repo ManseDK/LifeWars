@@ -29,6 +29,10 @@ commands:
     description: revives a player!
     usage: /adminrevive <player>
     permission: lifewars.adminrevive.use
+  adminspawnitem:
+    description: spawns a lifesteal item into your inventory.
+    usage: /adminspawnitem <heart|revivebook>
+    permission: lifewars.adminspawnitem.use
 permissions:
   lifewars.reloadconfig.use:
     default: op
