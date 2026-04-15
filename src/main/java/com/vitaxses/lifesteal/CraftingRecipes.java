@@ -17,6 +17,7 @@ public class CraftingRecipes {
     public static final String HEART_ID = "heart";
     public static final String REVIVE_BOOK_ID = "revivebook";
     public static final String CUSTOM_HEART_TOKEN = "CUSTOM_HEART";
+    public static final String LEGACY_CUSTOM_HEART_TOKEN = "LIFEWARS_DEFAULTHEART";
 
     private static final String[] HEART_DEFAULT_GRID = {
             "DIAMOND_BLOCK", "GOLD_BLOCK", "DIAMOND_BLOCK",
@@ -78,7 +79,7 @@ public class CraftingRecipes {
 
         String[] grid = new String[9];
         for (int i = 0; i < 9; i++) {
-            String token = sanitizeToken(fromConfig.get(i));
+            String token = normalizeRecipeToken(fromConfig.get(i));
             grid[i] = token == null ? "AIR" : token;
         }
         return grid;
@@ -87,7 +88,7 @@ public class CraftingRecipes {
     public void saveRecipeGrid(String recipeId, String[] grid) {
         List<String> stored = new ArrayList<>(9);
         for (int i = 0; i < 9; i++) {
-            String value = i < grid.length ? sanitizeToken(grid[i]) : null;
+            String value = i < grid.length ? normalizeRecipeToken(grid[i]) : null;
             stored.add(value == null ? "AIR" : value);
         }
         main.getConfig().set("recipes.layouts." + recipeId + ".grid", stored);
@@ -100,7 +101,7 @@ public class CraftingRecipes {
         char next = 'A';
 
         for (int i = 0; i < 9; i++) {
-            String token = i < grid.length ? sanitizeToken(grid[i]) : null;
+            String token = i < grid.length ? normalizeRecipeToken(grid[i]) : null;
             if (token == null || token.equals("AIR")) {
                 symbols[i] = ' ';
                 continue;
@@ -143,7 +144,7 @@ public class CraftingRecipes {
     }
 
     private RecipeChoice toChoice(String token) {
-        if (CUSTOM_HEART_TOKEN.equals(token)) {
+        if (isCustomHeartToken(token)) {
             return new RecipeChoice.ExactChoice(main.createHeartItem(1));
         }
 
@@ -152,6 +153,11 @@ public class CraftingRecipes {
             return null;
         }
         return new RecipeChoice.MaterialChoice(material);
+    }
+
+    public boolean isCustomHeartToken(String token) {
+        String normalized = sanitizeToken(token);
+        return CUSTOM_HEART_TOKEN.equals(normalized) || LEGACY_CUSTOM_HEART_TOKEN.equals(normalized);
     }
 
     public Material resolveMaterialToken(String token) {
@@ -195,5 +201,16 @@ public class CraftingRecipes {
         }
         return normalized;
 
+    }
+
+    private String normalizeRecipeToken(String value) {
+        String token = sanitizeToken(value);
+        if (token == null) {
+            return null;
+        }
+        if (LEGACY_CUSTOM_HEART_TOKEN.equals(token)) {
+            return CUSTOM_HEART_TOKEN;
+        }
+        return token;
     }
 }

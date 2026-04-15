@@ -321,7 +321,7 @@ public class AdminEditRecipes implements CommandExecutor, TabCompleter, Listener
             return namedItem(Material.GRAY_STAINED_GLASS_PANE, "Empty");
         }
 
-        if (CraftingRecipes.CUSTOM_HEART_TOKEN.equalsIgnoreCase(token)) {
+        if (main.getCraftingRecipes().isCustomHeartToken(token)) {
             ItemStack heart = main.createHeartItem(1);
             ItemMeta meta = heart.getItemMeta();
             if (meta != null) {

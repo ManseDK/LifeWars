@@ -12,6 +12,10 @@ items:
   # Heart
   heartName: "<bold><#d9252e>Heart"
   heartLore: "<gray>Højreklik for at bruge!"
+  # New string-based item model key (1.21+ style). Example: "lifewars:defaultheart"
+  # If set, this is used instead of heartCustomModelData.
+  heartItemModel: "lifewars_defaultheart"
+  heartCustomModelData: -1
   # Revive Book
   reviveBookName: "<aqua>Revive Bog"
   reviveBookLore: "<dark_aqua>Rename denne bog med det spillernavn, du vil revive, og højreklik for at revive spilleren!"

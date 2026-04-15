@@ -17,6 +17,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +29,10 @@ public final class LifeWars extends JavaPlugin {
     private static LifeWars instance;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private NamespacedKey itemIdKey;
+    private Method setItemModelMethod;
+    private boolean itemModelMethodChecked;
+    private boolean warnedInvalidHeartModelKey;
+    private boolean warnedUnsupportedItemModelApi;
 
     private File bannedPlayersFile;
     private YamlConfiguration bannedPlayersConfig;
@@ -251,9 +256,61 @@ public final class LifeWars extends JavaPlugin {
         ItemMeta meta = heart.getItemMeta();
         meta.displayName(deserializeText(getString("items.heartName", "HeartName", "<bold>Heart")));
         meta.lore(List.of(deserializeText(getString("items.heartLore", "HeartLore", "<gray>Right click to use heart"))));
+
+        applyHeartModel(meta);
+
         meta.getPersistentDataContainer().set(itemIdKey, PersistentDataType.STRING, DEFAULT_HEART_ITEM_ID);
         heart.setItemMeta(meta);
         return heart;
+    }
+
+    private void applyHeartModel(ItemMeta meta) {
+        String modelKeyRaw = getString("items.heartItemModel", null, "").trim();
+        if (!modelKeyRaw.isEmpty()) {
+            NamespacedKey modelKey = NamespacedKey.fromString(modelKeyRaw, this);
+            if (modelKey != null) {
+                if (trySetItemModel(meta, modelKey)) {
+                    return;
+                }
+                if (!warnedUnsupportedItemModelApi) {
+                    getLogger().warning("items.heartItemModel is set but this server API does not support ItemMeta#setItemModel. Falling back to items.heartCustomModelData.");
+                    warnedUnsupportedItemModelApi = true;
+                }
+            } else if (!warnedInvalidHeartModelKey) {
+                getLogger().warning("Invalid items.heartItemModel value: '" + modelKeyRaw + "'. Use namespace:key format (example: lifewars:defaultheart).");
+                warnedInvalidHeartModelKey = true;
+            }
+        }
+
+        int customModelData = getInt("items.heartCustomModelData", null, -1);
+        if (customModelData >= 0) {
+            meta.setCustomModelData(customModelData);
+        }
+    }
+
+    private boolean trySetItemModel(ItemMeta meta, NamespacedKey modelKey) {
+        Method setter = getSetItemModelMethod();
+        if (setter == null) {
+            return false;
+        }
+        try {
+            setter.invoke(meta, modelKey);
+            return true;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
+    private Method getSetItemModelMethod() {
+        if (!itemModelMethodChecked) {
+            itemModelMethodChecked = true;
+            try {
+                setItemModelMethod = ItemMeta.class.getMethod("setItemModel", NamespacedKey.class);
+            } catch (NoSuchMethodException ignored) {
+                setItemModelMethod = null;
+            }
+        }
+        return setItemModelMethod;
     }
 
     public ItemStack createReviveBook() {
