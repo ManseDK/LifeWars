@@ -7,10 +7,12 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -21,8 +23,11 @@ import java.util.stream.Collectors;
 
 public final class LifeWars extends JavaPlugin {
 
+    private static final String DEFAULT_HEART_ITEM_ID = "lifewars_defaultheart";
+
     private static LifeWars instance;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private NamespacedKey itemIdKey;
 
     private File bannedPlayersFile;
     private YamlConfiguration bannedPlayersConfig;
@@ -94,6 +99,7 @@ public final class LifeWars extends JavaPlugin {
         saveDefaultConfig();
         reloadConfig();
         instance = this;
+        itemIdKey = new NamespacedKey(this, "item_id");
 
         loadBannedPlayersFile();
 
@@ -112,13 +118,13 @@ public final class LifeWars extends JavaPlugin {
         craftingRecipes = new CraftingRecipes(this);
         craftingRecipes.registerRecipe();
 
-        AdminEditRecpies adminEditRecpies = new AdminEditRecpies(this);
-        requireCommand("admineditrecpies").setExecutor(adminEditRecpies);
-        requireCommand("admineditrecpies").setTabCompleter(adminEditRecpies);
+        AdminEditRecipes adminEditRecipes = new AdminEditRecipes(this);
+        requireCommand("admineditrecipes").setExecutor(adminEditRecipes);
+        requireCommand("admineditrecipes").setTabCompleter(adminEditRecipes);
 
         getServer().getPluginManager().registerEvents(new CoreLifesteal(this), this);
         getServer().getPluginManager().registerEvents(new RevivePlayers(this), this);
-        getServer().getPluginManager().registerEvents(adminEditRecpies, this);
+        getServer().getPluginManager().registerEvents(adminEditRecipes, this);
     }
 
     public static LifeWars getInstance() {
@@ -245,6 +251,7 @@ public final class LifeWars extends JavaPlugin {
         ItemMeta meta = heart.getItemMeta();
         meta.displayName(deserializeText(getString("items.heartName", "HeartName", "<bold>Heart")));
         meta.lore(List.of(deserializeText(getString("items.heartLore", "HeartLore", "<gray>Right click to use heart"))));
+        meta.getPersistentDataContainer().set(itemIdKey, PersistentDataType.STRING, DEFAULT_HEART_ITEM_ID);
         heart.setItemMeta(meta);
         return heart;
     }
@@ -261,6 +268,10 @@ public final class LifeWars extends JavaPlugin {
     public boolean isHeartItem(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() != Material.NETHER_STAR || !itemStack.hasItemMeta()) {
             return false;
+        }
+        String itemId = itemStack.getItemMeta().getPersistentDataContainer().get(itemIdKey, PersistentDataType.STRING);
+        if (DEFAULT_HEART_ITEM_ID.equals(itemId)) {
+            return true;
         }
         Component expectedName = deserializeText(getString("items.heartName", "HeartName", "<bold>Heart"));
         return expectedName.equals(itemStack.getItemMeta().displayName());

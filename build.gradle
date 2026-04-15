@@ -3,7 +3,21 @@ plugins {
 }
 
 group = 'me.vitaxses'
-version = '1.0'
+
+def getVersionFromPluginYml() {
+    def pluginYml = file('src/main/resources/plugin.yml')
+    if (pluginYml.exists()) {
+        def lines = pluginYml.readLines()
+        for (line in lines) {
+            if (line.startsWith('version:')) {
+                return line.split(':')[1].trim().replaceAll("'", "").replaceAll('"', "")
+            }
+        }
+    }
+    return '1.0.0'
+}
+
+version = getVersionFromPluginYml()
 
 java {
     toolchain {

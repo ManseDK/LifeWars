@@ -9,6 +9,7 @@ import org.bukkit.inventory.ShapedRecipe;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class CraftingRecipes {
@@ -146,18 +147,49 @@ public class CraftingRecipes {
             return new RecipeChoice.ExactChoice(main.createHeartItem(1));
         }
 
-        Material material = Material.matchMaterial(token, true);
-        if (material == null || material == Material.AIR || !material.isItem()) {
+        Material material = resolveMaterialToken(token);
+        if (material == null || material == Material.AIR) {
             return null;
         }
         return new RecipeChoice.MaterialChoice(material);
+    }
+
+    public Material resolveMaterialToken(String token) {
+        if (token == null) {
+            return null;
+        }
+
+        String normalized = token.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        String stripped = normalized;
+        int namespaceSeparator = normalized.indexOf(':');
+        if (namespaceSeparator >= 0 && namespaceSeparator + 1 < normalized.length()) {
+            stripped = normalized.substring(namespaceSeparator + 1);
+        }
+
+        String upperToken = stripped.toUpperCase(Locale.ROOT);
+        for (Material material : Material.values()) {
+            if (material == Material.AIR || material.isLegacy()) {
+                continue;
+            }
+            if (material.name().equals(upperToken)) {
+                return material;
+            }
+            if (material.getKey().toString().equalsIgnoreCase(normalized)) {
+                return material;
+            }
+        }
+        return null;
     }
 
     private String sanitizeToken(String value) {
         if (value == null) {
             return null;
         }
-        String normalized = value.trim().toUpperCase();
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
         if (normalized.isEmpty()) {
             return null;
         }

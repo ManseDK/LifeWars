@@ -20,6 +20,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -34,20 +35,25 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener {
+public class AdminEditRecipes implements CommandExecutor, TabCompleter, Listener {
 
-    private static final String EDITOR_TITLE_PREFIX = "Recipe Editor: ";
-    private static final String PICKER_TITLE_PREFIX = "Item Picker: ";
+    private static final String EDITOR_TITLE_PREFIX = "Recipe Editor -  ";
+    private static final String PICKER_TITLE_PREFIX = "Item Picker ";
     private static final int[] WORKBENCH_GRID_SLOTS = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     private static final int PICKER_CONTENT_SIZE = 45;
     private static final List<String> OPTIONS = List.of(CraftingRecipes.HEART_ID, CraftingRecipes.REVIVE_BOOK_ID);
     private static final Component EDITOR_HINT_LORE = Component.text(
-            "Shift left click to clear, shift right click to choose an item.",
+            "Left click to choose, shift-right click to clear.",
+            TextColor.fromHexString("#ADADAD")
+    );
+    private static final Component PICKER_HINT_LORE = Component.text(
+            "Click to use this item for the selected recipe slot.",
             TextColor.fromHexString("#ADADAD")
     );
 
     private static final List<Material> PICKABLE_MATERIALS = Arrays.stream(Material.values())
             .filter(Material::isItem)
+            .filter(material -> !material.isLegacy())
             .filter(material -> material != Material.AIR)
             .sorted(Comparator.comparing(Material::name))
             .toList();
@@ -55,7 +61,7 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
     private final LifeWars main;
     private final Map<UUID, Session> sessions = new HashMap<>();
 
-    public AdminEditRecpies(LifeWars main) {
+    public AdminEditRecipes(LifeWars main) {
         this.main = main;
     }
 
@@ -69,14 +75,14 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
 
         if (args.length != 1) {
             player.sendMessage(main.formatPrefixedMessageComponent(
-                    "usageError", "%usage%", "/admineditrecpies <heart|revivebook>"));
+                    "usageError", "%usage%", "/admineditrecipes <heart|revivebook>"));
             return true;
         }
 
         String recipeId = args[0].toLowerCase(Locale.ROOT);
         if (!OPTIONS.contains(recipeId)) {
             player.sendMessage(main.formatPrefixedMessageComponent(
-                    "usageError", "%usage%", "/admineditrecpies <heart|revivebook>"));
+                    "usageError", "%usage%", "/admineditrecipes <heart|revivebook>"));
             return true;
         }
 
@@ -148,10 +154,7 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
                 return;
             }
 
-            main.getCraftingRecipes().saveRecipeGrid(session.recipeId, session.gridTokens);
-            main.getCraftingRecipes().registerRecipe();
-            player.sendActionBar(main.getMessageComponent("recipeSavedActionbar"));
-            sessions.remove(player.getUniqueId());
+            saveAndFinishSession(player, session);
             return;
         }
 
@@ -160,8 +163,8 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
             return;
         }
 
-        session.transitioningInventory = true;
-        Bukkit.getScheduler().runTask(main, () -> openEditor(player, session));
+        // Closing picker without selecting means editing is done, so persist changes now.
+        saveAndFinishSession(player, session);
     }
 
     private void handleEditorClick(InventoryClickEvent event, Player player, Session session) {
@@ -176,21 +179,18 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
             return;
         }
 
-        if (event.getClick() == ClickType.SHIFT_LEFT) {
+        if (event.getClick() == ClickType.SHIFT_RIGHT) {
             session.gridTokens[index] = "AIR";
             setEditorSlot(event.getView().getTopInventory(), index, "AIR");
             return;
         }
 
-        if (event.getClick() == ClickType.SHIFT_RIGHT) {
+        if (event.getClick() == ClickType.LEFT) {
             session.selectedGridIndex = index;
             session.pickerPage = 0;
-            session.transitioningInventory = true;
-            openPicker(player, session);
+            switchToPicker(player, session);
             return;
         }
-
-        // No action-bar fallback hint: instructions are shown directly in item lore.
     }
 
     private void handlePickerClick(InventoryClickEvent event, Player player, Session session) {
@@ -201,38 +201,41 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
         }
 
         int rawSlot = event.getRawSlot();
+        
+        if (rawSlot == 0) {
+            applyPickerSelection(player, session, CraftingRecipes.CUSTOM_HEART_TOKEN);
+            return;
+        }
+        
         if (rawSlot == 45 && session.pickerPage > 0) {
             session.pickerPage--;
-            session.transitioningInventory = true;
-            openPicker(player, session);
+            switchToPicker(player, session);
             return;
         }
         if (rawSlot == 49) {
-            session.transitioningInventory = true;
-            openEditor(player, session);
+            switchToEditor(player, session);
             return;
         }
         if (rawSlot == 53 && (session.pickerPage + 1) * PICKER_CONTENT_SIZE < PICKABLE_MATERIALS.size()) {
             session.pickerPage++;
-            session.transitioningInventory = true;
-            openPicker(player, session);
-            return;
-        }
-        if (rawSlot == 47) {
-            applyPickerSelection(player, session, CraftingRecipes.CUSTOM_HEART_TOKEN);
+            switchToPicker(player, session);
             return;
         }
 
-        if (rawSlot < 0 || rawSlot >= PICKER_CONTENT_SIZE) {
+        if (rawSlot < 1 || rawSlot >= PICKER_CONTENT_SIZE) {
             return;
         }
 
-        int materialIndex = session.pickerPage * PICKER_CONTENT_SIZE + rawSlot;
+        int materialIndex = session.pickerPage * PICKER_CONTENT_SIZE + rawSlot - 1;
         if (materialIndex < 0 || materialIndex >= PICKABLE_MATERIALS.size()) {
             return;
         }
 
-        applyPickerSelection(player, session, PICKABLE_MATERIALS.get(materialIndex).name());
+        ItemStack clickedItem = event.getCurrentItem();
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+            return;
+        }
+        applyPickerSelection(player, session, clickedItem.getType().name());
     }
 
     private void applyPickerSelection(Player player, Session session, String token) {
@@ -241,16 +244,31 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
         }
 
         session.gridTokens[session.selectedGridIndex] = token;
-        session.transitioningInventory = true;
-        openEditor(player, session);
+        switchToEditor(player, session);
     }
 
     private void openEditor(Player player, Session session) {
         Inventory editor = Bukkit.createInventory(new SessionHolder(session.recipeId, true), InventoryType.WORKBENCH,
                 Component.text(EDITOR_TITLE_PREFIX + session.recipeId));
 
-        for (int i = 0; i < 9; i++) {
-            setEditorSlot(editor, i, session.gridTokens[i]);
+        ItemStack resultItem;
+        if (CraftingRecipes.HEART_ID.equals(session.recipeId)) {
+            resultItem = main.createHeartItem(1);
+        } else {
+            resultItem = main.createReviveBook();
+        }
+        if (editor instanceof CraftingInventory crafting) {
+            crafting.setResult(resultItem);
+            ItemStack[] matrix = new ItemStack[9];
+            for (int i = 0; i < 9; i++) {
+                matrix[i] = withEditorHintLore(tokenToIcon(session.gridTokens[i]));
+            }
+            crafting.setMatrix(matrix);
+        } else {
+            editor.setItem(0, resultItem);
+            for (int i = 0; i < 9; i++) {
+                setEditorSlot(editor, i, session.gridTokens[i]);
+            }
         }
 
         player.openInventory(editor);
@@ -258,65 +276,123 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
 
     private void openPicker(Player player, Session session) {
         Inventory picker = Bukkit.createInventory(new SessionHolder(session.recipeId, false), 54,
-                Component.text(PICKER_TITLE_PREFIX + session.recipeId + " (page " + (session.pickerPage + 1) + ")"));
+                Component.text(PICKER_TITLE_PREFIX + " (page " + (session.pickerPage + 1) + ")"));
+
+        // Add custom heart as the first item
+        picker.setItem(0, withLore(namedItem(Material.NETHER_STAR, "Use Custom Heart Item"), PICKER_HINT_LORE));
 
         int start = session.pickerPage * PICKER_CONTENT_SIZE;
-        for (int slot = 0; slot < PICKER_CONTENT_SIZE; slot++) {
-            int index = start + slot;
+        for (int slot = 1; slot < PICKER_CONTENT_SIZE; slot++) {
+            int index = start + slot - 1;
             if (index >= PICKABLE_MATERIALS.size()) {
                 break;
             }
-            picker.setItem(slot, withEditorHintLore(new ItemStack(PICKABLE_MATERIALS.get(index))));
+            picker.setItem(slot, withLore(new ItemStack(PICKABLE_MATERIALS.get(index)), PICKER_HINT_LORE));
         }
 
-        picker.setItem(45, withEditorHintLore(namedItem(Material.ARROW, "Previous page")));
-        picker.setItem(47, withEditorHintLore(namedItem(Material.NETHER_STAR, "Use Custom Heart Item")));
-        picker.setItem(49, withEditorHintLore(namedItem(Material.BARRIER, "Back to recipe")));
-        picker.setItem(53, withEditorHintLore(namedItem(Material.ARROW, "Next page")));
+        picker.setItem(45, namedItem(Material.ARROW, "Previous page"));
+        picker.setItem(49, namedItem(Material.BARRIER, "Back to recipe"));
+        picker.setItem(53, namedItem(Material.ARROW, "Next page"));
 
         player.openInventory(picker);
     }
 
     private void setEditorSlot(Inventory editor, int gridIndex, String token) {
-        int rawSlot = WORKBENCH_GRID_SLOTS[gridIndex];
         ItemStack icon = tokenToIcon(token);
+        if (icon != null) {
+            icon = withEditorHintLore(icon);
+        }
+        if (editor instanceof CraftingInventory crafting) {
+            ItemStack[] matrix = crafting.getMatrix();
+            if (matrix == null || matrix.length < 9) {
+                matrix = new ItemStack[9];
+            }
+            matrix[gridIndex] = icon;
+            crafting.setMatrix(matrix);
+            return;
+        }
+
+        int rawSlot = WORKBENCH_GRID_SLOTS[gridIndex];
         editor.setItem(rawSlot, icon);
     }
 
     private ItemStack tokenToIcon(String token) {
         if (token == null || token.equalsIgnoreCase("AIR")) {
-            return withEditorHintLore(namedItem(Material.GRAY_STAINED_GLASS_PANE, "Empty"));
+            return namedItem(Material.GRAY_STAINED_GLASS_PANE, "Empty");
         }
 
         if (CraftingRecipes.CUSTOM_HEART_TOKEN.equalsIgnoreCase(token)) {
             ItemStack heart = main.createHeartItem(1);
             ItemMeta meta = heart.getItemMeta();
-            List<Component> lore = new ArrayList<>();
-            List<Component> existingLore = meta.lore();
-            if (existingLore != null) {
-                lore.addAll(existingLore);
+            if (meta != null) {
+                List<Component> lore = new ArrayList<>();
+                List<Component> existingLore = meta.lore();
+                if (existingLore != null) {
+                    lore.addAll(existingLore);
+                }
+                lore.add(Component.text("Used as custom heart ingredient"));
+                meta.lore(lore);
+                heart.setItemMeta(meta);
             }
-            lore.add(Component.text("Used as custom heart ingredient"));
-            meta.lore(lore);
-            heart.setItemMeta(meta);
-            return withEditorHintLore(heart);
+            return heart;
         }
 
-        Material material = Material.matchMaterial(token, true);
-        if (material == null || material == Material.AIR || !material.isItem()) {
-            return withEditorHintLore(namedItem(Material.GRAY_STAINED_GLASS_PANE, "Empty"));
+        Material material = resolveMaterialToken(token);
+        if (material == null || material == Material.AIR) {
+            return namedItem(Material.GRAY_STAINED_GLASS_PANE, "Empty");
         }
-        return withEditorHintLore(new ItemStack(material));
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            meta = Bukkit.getItemFactory().getItemMeta(material);
+        }
+        if (meta != null) {
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private ItemStack withEditorHintLore(ItemStack item) {
+        if (item == null) {
+            return item;
+        }
         ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            meta = Bukkit.getItemFactory().getItemMeta(item.getType());
+        }
+        if (meta == null) {
+            return item;
+        }
+        
         List<Component> lore = new ArrayList<>();
         List<Component> existingLore = meta.lore();
         if (existingLore != null) {
             lore.addAll(existingLore);
         }
         lore.add(EDITOR_HINT_LORE);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack withLore(ItemStack item, Component loreLine) {
+        if (item == null || loreLine == null) {
+            return item;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            meta = Bukkit.getItemFactory().getItemMeta(item.getType());
+        }
+        if (meta == null) {
+            return item;
+        }
+
+        List<Component> lore = new ArrayList<>();
+        List<Component> existingLore = meta.lore();
+        if (existingLore != null) {
+            lore.addAll(existingLore);
+        }
+        lore.add(loreLine);
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
@@ -339,9 +415,43 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
         return -1;
     }
 
+    private void saveAndFinishSession(Player player, Session session) {
+        persistSession(player, session);
+        sessions.remove(player.getUniqueId());
+    }
+
+    private void persistSession(Player player, Session session) {
+        if (!sessionDiffersFromOriginal(session)) {
+            return;
+        }
+        main.getCraftingRecipes().saveRecipeGrid(session.recipeId, session.gridTokens);
+        main.getCraftingRecipes().registerRecipe();
+        player.sendActionBar(main.getMessageComponent("messages.recipeSavedActionbar"));
+        session.markCurrentAsOriginal();
+    }
+
+    private void switchToEditor(Player player, Session session) {
+        session.transitioningInventory = true;
+        Bukkit.getScheduler().runTask(main, () -> openEditor(player, session));
+    }
+
+    private void switchToPicker(Player player, Session session) {
+        session.transitioningInventory = true;
+        Bukkit.getScheduler().runTask(main, () -> openPicker(player, session));
+    }
+
+    private @Nullable Material resolveMaterialToken(String token) {
+        return main.getCraftingRecipes().resolveMaterialToken(token);
+    }
+
+    private boolean sessionDiffersFromOriginal(Session session) {
+        return !Arrays.equals(session.gridTokens, session.originalGridTokens);
+    }
+
     private static final class Session {
         private final String recipeId;
         private final String[] gridTokens;
+        private final String[] originalGridTokens;
         private boolean transitioningInventory;
         private int selectedGridIndex = -1;
         private int pickerPage;
@@ -349,6 +459,11 @@ public class AdminEditRecpies implements CommandExecutor, TabCompleter, Listener
         private Session(String recipeId, String[] gridTokens) {
             this.recipeId = recipeId;
             this.gridTokens = Arrays.copyOf(gridTokens, 9);
+            this.originalGridTokens = Arrays.copyOf(gridTokens, 9);
+        }
+
+        private void markCurrentAsOriginal() {
+            System.arraycopy(gridTokens, 0, originalGridTokens, 0, 9);
         }
     }
 
