@@ -104,6 +104,7 @@ public class CoreLifesteal implements Listener {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @EventHandler
     public void onHeartEquip(PlayerInteractEvent event) {
         if (!main.getBoolean("features.heartUseEnabled", "Use/EquipHearts", true)) {
@@ -114,8 +115,6 @@ public class CoreLifesteal implements Listener {
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) {
             return;
         }
-
-        // Don't consume the heart when clicking a block that has its own interaction
         if (action == Action.RIGHT_CLICK_BLOCK) {
             Block clicked = event.getClickedBlock();
             if (clicked != null && clicked.getType().isInteractable()) {
