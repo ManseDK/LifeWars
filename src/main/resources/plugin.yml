@@ -3,7 +3,7 @@ version: '1.0.1'
 main: com.vitaxses.lifesteal.LifeWars
 api-version: '1.21'
 authors: [ Vitaxses, Manse ]
-description: LifeWars plugin :) (Forked from Vitaxses & updated by Manse)
+description: Forked from Vitaxses & updated by Manse
 commands:
   editconfig:
     description: edit configuration with commands, (Messages not included).
@@ -37,6 +37,8 @@ permissions:
   lifewars.eliminate.use:
     default: op
   lifewars.adminrevive.use:
+    default: op
+  lifewars.adminspawnitem.use:
     default: op
   lifewars.sethealth.use:
     default: op

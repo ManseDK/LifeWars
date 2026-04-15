@@ -90,8 +90,8 @@ public final class LifeWars extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        getConfig().options().copyDefaults(true);
         saveDefaultConfig();
+        reloadConfig();
         instance = this;
 
         loadBannedPlayersFile();
@@ -104,6 +104,10 @@ public final class LifeWars extends JavaPlugin {
         requireCommand("editconfig").setExecutor(new EditConfigCm(this));
         requireCommand("editconfig").setTabCompleter(new EditConfigTab());
 
+        AdminSpawnItem adminSpawnItem = new AdminSpawnItem(this);
+        requireCommand("adminspawnitem").setExecutor(adminSpawnItem);
+        requireCommand("adminspawnitem").setTabCompleter(adminSpawnItem);
+
         new CraftingRecipes(this).registerRecipe();
         getServer().getPluginManager().registerEvents(new CoreLifesteal(this), this);
         getServer().getPluginManager().registerEvents(new RevivePlayers(this), this);
@@ -111,6 +115,22 @@ public final class LifeWars extends JavaPlugin {
 
     public static LifeWars getInstance() {
         return instance;
+    }
+
+    @Override
+    public void reloadConfig() {
+        super.reloadConfig();
+        getConfig().options().copyDefaults(true);
+        if (getConfig().getDefaults() != null) {
+            boolean dirty = false;
+            for (String key : getConfig().getDefaults().getKeys(true)) {
+                if (!getConfig().getDefaults().isConfigurationSection(key) && !getConfig().isSet(key)) {
+                    getConfig().set(key, getConfig().getDefaults().get(key));
+                    dirty = true;
+                }
+            }
+            if (dirty) saveConfig();
+        }
     }
 
     private org.bukkit.command.PluginCommand requireCommand(String name) {
@@ -222,7 +242,6 @@ public final class LifeWars extends JavaPlugin {
         ItemMeta meta = reviveBook.getItemMeta();
         meta.displayName(deserializeText(getString("items.reviveBookName", "ReviveItemName", "<aqua>Revive Book")));
         meta.lore(List.of(deserializeText(getString("items.reviveBookLore", "ReviveItemLore", "<dark_aqua>Rename this book with the player name to revive"))));
-        meta.setUnbreakable(true);
         reviveBook.setItemMeta(meta);
         return reviveBook;
     }

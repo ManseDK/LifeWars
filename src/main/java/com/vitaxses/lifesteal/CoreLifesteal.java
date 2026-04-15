@@ -2,6 +2,7 @@ package com.vitaxses.lifesteal;
 
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
@@ -112,6 +113,14 @@ public class CoreLifesteal implements Listener {
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) {
             return;
+        }
+
+        // Don't consume the heart when clicking a block that has its own interaction
+        if (action == Action.RIGHT_CLICK_BLOCK) {
+            Block clicked = event.getClickedBlock();
+            if (clicked != null && clicked.getType().isInteractable()) {
+                return;
+            }
         }
 
         Player player = event.getPlayer();
