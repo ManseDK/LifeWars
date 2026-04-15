@@ -33,6 +33,11 @@ commands:
     description: spawns a lifesteal item into your inventory.
     usage: /adminspawnitem <heart|revivebook>
     permission: lifewars.adminspawnitem.use
+  admineditrecpies:
+    description: opens recipe editor for lifewars recipe layouts.
+    usage: /admineditrecpies <heart|revivebook>
+    aliases: [admineditrecipes]
+    permission: lifewars.admineditrecpies.use
 permissions:
   lifewars.reloadconfig.use:
     default: op
@@ -43,6 +48,8 @@ permissions:
   lifewars.adminrevive.use:
     default: op
   lifewars.adminspawnitem.use:
+    default: op
+  lifewars.admineditrecpies.use:
     default: op
   lifewars.sethealth.use:
     default: op

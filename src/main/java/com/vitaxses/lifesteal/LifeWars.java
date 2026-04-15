@@ -26,6 +26,7 @@ public final class LifeWars extends JavaPlugin {
 
     private File bannedPlayersFile;
     private YamlConfiguration bannedPlayersConfig;
+    private CraftingRecipes craftingRecipes;
 
     private void loadBannedPlayersFile() {
         bannedPlayersFile = new File(getDataFolder(), "BannedPlayers.yml");
@@ -108,13 +109,24 @@ public final class LifeWars extends JavaPlugin {
         requireCommand("adminspawnitem").setExecutor(adminSpawnItem);
         requireCommand("adminspawnitem").setTabCompleter(adminSpawnItem);
 
-        new CraftingRecipes(this).registerRecipe();
+        craftingRecipes = new CraftingRecipes(this);
+        craftingRecipes.registerRecipe();
+
+        AdminEditRecpies adminEditRecpies = new AdminEditRecpies(this);
+        requireCommand("admineditrecpies").setExecutor(adminEditRecpies);
+        requireCommand("admineditrecpies").setTabCompleter(adminEditRecpies);
+
         getServer().getPluginManager().registerEvents(new CoreLifesteal(this), this);
         getServer().getPluginManager().registerEvents(new RevivePlayers(this), this);
+        getServer().getPluginManager().registerEvents(adminEditRecpies, this);
     }
 
     public static LifeWars getInstance() {
         return instance;
+    }
+
+    public CraftingRecipes getCraftingRecipes() {
+        return craftingRecipes;
     }
 
     @Override

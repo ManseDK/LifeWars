@@ -16,6 +16,9 @@ public class RLConfig implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String @NotNull [] strings) {
         main.reloadConfig();
+        if (main.getCraftingRecipes() != null) {
+            main.getCraftingRecipes().registerRecipe();
+        }
         commandSender.sendMessage(main.getPrefixedMessageComponent("reloadMsg"));
 
         return true;
