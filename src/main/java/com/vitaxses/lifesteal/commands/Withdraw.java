@@ -62,11 +62,13 @@ public class Withdraw implements CommandExecutor {
         double newHealth = originalHealth - amount;
 
         if (newHealth > 1) {
+            if (!player.getInventory().addItem(main.createHeartItem(heartItem)).isEmpty()) {
+                player.sendMessage(main.getPrefixedMessageComponent("inventoryFull"));
+                return;
+            }
+
             healthAttribute.setBaseValue(newHealth);
 
-            ItemStack heart = main.createHeartItem(heartItem);
-
-            player.getInventory().addItem(heart);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 1.5f, 1.5f);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_DEATH, 1.5f, 1.5f);
             player.sendMessage(main.formatPrefixedMessageComponent("successWithdraw", "%amount%", String.valueOf(heartItem), "%item%", "Heart(s)"));

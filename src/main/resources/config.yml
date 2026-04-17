@@ -64,6 +64,7 @@ messages:
   setHeartsConfirmSingle: "<gray>Satte <red>%player%<gray>'s hjerter til <red>%amount%<gray> hjerter"
   reloadMsg: "<gray>Genindlaeste pluginnet!"
   noWithdraw: "<red>Du bliver elimineret, hvis du withdrawer et heart!"
+  inventoryFull: "<red>Dit inventory er fyldt! Du kan ikke withdraw!"
   withdrawMin: "<red>Du kan ikke withdraw mindre end 1 hjerte!"
   successWithdraw: "<gray>Du fik %amount%x <red>%item%<gray>!"
   maxHeartLimitReached: "<red>Du har allerede ramt %limit% hjerter!"

@@ -74,6 +74,7 @@ public class CraftingRecipes {
         if (fromConfig.size() != 9) {
             String[] fallback = getDefaultGrid(recipeId);
             saveRecipeGrid(recipeId, fallback);
+            main.saveConfig();
             return fallback;
         }
 
