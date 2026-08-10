@@ -1,5 +1,5 @@
 name: LifeWars
-version: '1.0.2'
+version: '0.1.8'
 main: com.vitaxses.lifesteal.LifeWars
 api-version: '1.21'
 authors: [ Vitaxses, Manse ]
