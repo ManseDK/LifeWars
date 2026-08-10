@@ -181,6 +181,38 @@ public final class LifeWars extends JavaPlugin {
         return defaultValue;
     }
 
+    public List<Component> getLore(String modernPath, String legacyPath, List<String> defaultLines) {
+        List<String> lines = getConfigStrings(modernPath);
+        if (lines.isEmpty() && legacyPath != null) {
+            lines = getConfigStrings(legacyPath);
+        }
+        if (lines.isEmpty()) {
+            lines = new ArrayList<>(defaultLines);
+        }
+
+        List<Component> lore = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            lore.add(deserializeText(line));
+        }
+        return lore;
+    }
+
+    private List<String> getConfigStrings(String path) {
+        if (!getConfig().contains(path)) {
+            return List.of();
+        }
+        if (getConfig().isList(path)) {
+            List<String> values = getConfig().getStringList(path);
+            return values == null ? List.of() : values;
+        }
+
+        String value = getConfig().getString(path);
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return List.of(value);
+    }
+
 
     public Component deserializeText(String raw) {
         if (raw == null) return Component.empty();
@@ -254,7 +286,7 @@ public final class LifeWars extends JavaPlugin {
         ItemStack heart = new ItemStack(Material.NETHER_STAR, amount);
         ItemMeta meta = heart.getItemMeta();
         meta.displayName(deserializeText(getString("items.heartName", "HeartName", "<bold>Heart")));
-        meta.lore(List.of(deserializeText(getString("items.heartLore", "HeartLore", "<gray>Right click to use heart"))));
+        meta.lore(getLore("items.heartLore", "HeartLore", List.of("<gray>Right click to use heart")));
 
         meta.getPersistentDataContainer().set(itemIdKey, PersistentDataType.STRING, DEFAULT_HEART_ITEM_ID);
         applyCustomModelDataStrings(meta);
@@ -297,7 +329,11 @@ public final class LifeWars extends JavaPlugin {
         ItemStack reviveBook = new ItemStack(Material.ENCHANTED_BOOK, 1);
         ItemMeta meta = reviveBook.getItemMeta();
         meta.displayName(deserializeText(getString("items.reviveBookName", "ReviveItemName", "<aqua>Revive Book")));
-        meta.lore(List.of(deserializeText(getString("items.reviveBookLore", "ReviveItemLore", "<dark_aqua>Rename this book with the player name to revive"))));
+        meta.lore(getLore(
+                "items.reviveBookLore",
+                "ReviveItemLore",
+                List.of("<dark_aqua>Rename this book with the player name to revive")
+        ));
         reviveBook.setItemMeta(meta);
         return reviveBook;
     }
