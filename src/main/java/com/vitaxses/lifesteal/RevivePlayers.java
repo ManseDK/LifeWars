@@ -1,77 +1,120 @@
 package com.vitaxses.lifesteal;
 
-import org.bukkit.*;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import java.util.Arrays;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import java.util.List;
+import java.util.Locale;
 
 public class RevivePlayers implements Listener {
 
-    private LifeWars main;
+    private final LifeWars main;
 
     public RevivePlayers(LifeWars main) {
         this.main = main;
     }
 
     @EventHandler
-    public void InteractRevive(PlayerInteractEvent event) {
+    public void onInteractRevive(PlayerInteractEvent event) {
+        if (!main.getBoolean("features.reviveBookEnabled", "Revive", true)) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
 
-        if (main.getConfig().getBoolean("Revive")) {
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
 
-            Player player = event.getPlayer();
-            ItemStack reviveItem = event.getItem();
-            Action action = event.getAction();
+        if (action == Action.RIGHT_CLICK_BLOCK) {
+            Block clicked = event.getClickedBlock();
+            if (clicked != null && clicked.getType().isInteractable()) return;
+        }
 
-            if (reviveItem != null) {
-                if (reviveItem.getType() == Material.ENCHANTED_BOOK) {
-                    if (reviveItem.getItemMeta().getLore() != null && reviveItem.getItemMeta().getLore().equals(Arrays.asList(ChatColor.DARK_AQUA + main.getConfig().getString("ReviveItemLore") ) ) ) {
-                        if (!reviveItem.getItemMeta().getDisplayName().equals(ChatColor.AQUA + main.getConfig().getString("ReviveItemName") ) ) {
-                            String NameOfBookPlayer = reviveItem.getItemMeta().getDisplayName();
-                            if (action == Action.RIGHT_CLICK_BLOCK || action == Action.RIGHT_CLICK_AIR) {
-                                BanList banlist = Bukkit.getBanList(BanList.Type.NAME);
-                                if (banlist.isBanned(NameOfBookPlayer) && main.getBannedPlayers(true).contains(NameOfBookPlayer.toLowerCase())) {
-                                    main.getLogger().info("checking if banned!");
+        Player player = event.getPlayer();
+        ItemStack heldItem = event.getItem();
 
-                                    unbanPlayer(player, NameOfBookPlayer);
-                                    main.getLogger().info("Success with unbanning player!");
-                                    player.getItemInHand().setType(Material.AIR);
-                                    reviveItem.setType(Material.AIR);
-                                    player.updateInventory();
+        if (heldItem == null || heldItem.getType() != Material.ENCHANTED_BOOK || !heldItem.hasItemMeta()) {
+            return;
+        }
 
-                                    int reviveMaxHealth = main.getConfig().getInt("ReviveHealth");
+        List<Component> expectedLore = main.createReviveBook().getItemMeta().lore();
+        List<Component> actualLore = heldItem.getItemMeta().lore();
+        if (actualLore == null || expectedLore == null || !actualLore.equals(expectedLore)) {
+            player.sendActionBar(main.getMessageComponent("recipeNotFound"));
+            return;
+        }
 
-                                    if (reviveMaxHealth < 0) {
-                                        reviveMaxHealth = 6;
-                                        main.getLogger().warning("ReviveMaxHealth in config is 0 or under, please select higher value!");
-                                        main.getLogger().warning("Set the ReviveMaxHealth to 6 (3 hearts)!");
-                                    }
+        Component display = heldItem.getItemMeta().displayName();
+        if (display == null) return;
 
-                                } else {
-                                    player.sendMessage(ChatColor.RED + NameOfBookPlayer + " is not banned!");
-                                }
-                            }
-                        }
-                    } else {
-                        player.sendActionBar("no bugs, please!");
-                    }
-                }
-            }
+        String targetName = main.toPlainText(display).trim();
+        if (targetName.isEmpty() || targetName.equalsIgnoreCase(main.getReviveBookTemplateNamePlain())) {
+            player.sendMessage(main.formatPrefixedMessageComponent(
+                    "usageError", "%usage%", "Rename the Revive Book to the target player's name"));
+            return;
+        }
+
+        if (!main.getBannedPlayers(true).contains(targetName.toLowerCase(Locale.ROOT))) {
+            return;
+        }
+
+        revivePlayer(player, targetName);
+        consumeOneBook(player);
+    }
+
+    private void revivePlayer(Player player, String targetName) {
+        main.unbanPlayer(targetName);
+        Bukkit.broadcast(main.formatPrefixedMessageComponent("reviveSuccess", "%player%", targetName));
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+        playReviveEffect(player);
+    }
+
+    private void consumeOneBook(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand.getAmount() <= 1) {
+            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+        } else {
+            hand.setAmount(hand.getAmount() - 1);
         }
     }
 
-    public void unbanPlayer(Player player, String playerName) {
-        ItemStack nothing = new ItemStack(Material.AIR);
+    private void playReviveEffect(Player player) {
+        Location loc = player.getLocation();
+        World world = loc.getWorld();
+        if (world == null) return;
 
-        String command = "pardon " + playerName;
-        Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, loc, 80, 1.0, 0.5, 1.0, 0.1);
+        world.spawnParticle(Particle.CRIT,           loc, 40, 0.8, 0.5, 0.8, 0.1);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1.5, 0), 60, 0.15, 0.5, 0.15, 0.1);
+        world.spawnParticle(Particle.ENCHANT,        loc, 50, 0.2, 0.5, 0.2, 1.0);
+        world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1.0f, 1.8f);
 
-        Bukkit.broadcastMessage(ChatColor.GREEN + player.getName()+ main.getConfig().getString("ReviveAnnouncement") + ChatColor.YELLOW + playerName);
-        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-        player.setItemInHand(nothing);
+        new BukkitRunnable() {
+            @Override public void run() {
+                world.spawnParticle(Particle.SONIC_BOOM, loc.clone().add(0, 0.9, 0), 1, 0.0, 0.0, 0.0, 0.0);
+            }
+        }.runTaskLater(main, 3L);
+
+
+        new BukkitRunnable() {
+            @Override public void run() {
+                Location loc5 = loc.clone().add(0, 1.0, 0);
+                world.spawnParticle(Particle.ENCHANT,        loc5, 80, 1.5, 0.5, 1.5, 1.0);
+                world.spawnParticle(Particle.ELECTRIC_SPARK, loc5, 50, 1.0, 0.5, 1.0, 0.1);
+                world.playSound(loc, Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.5f);
+            }
+        }.runTaskLater(main, 5L);
     }
 
 }

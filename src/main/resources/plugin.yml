@@ -1,9 +1,9 @@
 name: LifeWars
-version: '1.0'
+version: '0.1.8'
 main: com.vitaxses.lifesteal.LifeWars
 api-version: '1.21'
-authors: [ Vitaxses ]
-description: Lifesteal plugins :) (Made by Vitaxses)
+authors: [ Vitaxses, Manse ]
+description: Forked from Vitaxses & updated by Manse
 commands:
   editconfig:
     description: edit configuration with commands, (Messages not included).
@@ -29,6 +29,14 @@ commands:
     description: revives a player!
     usage: /adminrevive <player>
     permission: lifewars.adminrevive.use
+  adminspawnitem:
+    description: spawns a lifesteal item into your inventory.
+    usage: /adminspawnitem <heart|revivebook>
+    permission: lifewars.adminspawnitem.use
+  admineditrecipes:
+    description: opens recipe editor for lifewars recipe layouts.
+    usage: /admineditrecipes <heart|revivebook>
+    permission: lifewars.admineditrecipes.use
 permissions:
   lifewars.reloadconfig.use:
     default: op
@@ -37,6 +45,10 @@ permissions:
   lifewars.eliminate.use:
     default: op
   lifewars.adminrevive.use:
+    default: op
+  lifewars.adminspawnitem.use:
+    default: op
+  lifewars.admineditrecipes.use:
     default: op
   lifewars.sethealth.use:
     default: op

@@ -1,74 +1,75 @@
-# If you are new to configuration im here to help you :)
+features:
+  reviveBookEnabled: true
+  heartUseEnabled: true
+  withdrawCommandEnabled: true
 
-# - 'true' means enabled, 'false' means disabled.
-# - Keep the ':' before your statement.
-# - Use messages like this: ("message") for message strings.
+gameplay:
+  maxHealth: 40
+  reviveHealth: 8
+  dropHeartsIfMax: true
 
-Enabled: true
+items:
+  # Heart
+  heartName: "<bold><#d9252e>Heart"
+  heartLore: "<gray>Right-click to use!"
+  # New string-based item model key (1.21+ style). Example: "lifewars:defaultheart"
+  # If set, this is used instead of heartCustomModelData.
+  heartItemModel: "lifewars_defaultheart"
+  heartCustomModelData: -1
+  # Revive Book
+  reviveBookName: "<aqua>Revive Book"
+  reviveBookLore: "<dark_aqua>Rename this book to the player name you want to revive, then right-click to revive that player!"
 
-# ==Easy-Configuration==
+recipes:
+  customRecipesEnabled: true
+  heartRecipeEnabled: true
+  reviveBookRecipeEnabled: true
+  # Recipe layouts going from left to right, top to bottom, and empty spaces are represented by AIR
+  layouts:
+    heart:
+      grid:
+        - DIAMOND_BLOCK
+        - GOLD_BLOCK
+        - DIAMOND_BLOCK
+        - NETHERITE_INGOT
+        - TOTEM_OF_UNDYING
+        - NETHERITE_INGOT
+        - DIAMOND_BLOCK
+        - GOLD_BLOCK
+        - DIAMOND_BLOCK
+    revivebook:
+      grid:
+        - DIAMOND_BLOCK
+        - CUSTOM_HEART
+        - GOLD_BLOCK
+        - CUSTOM_HEART
+        - NETHER_STAR
+        - CUSTOM_HEART
+        - GOLD_BLOCK
+        - CUSTOM_HEART
+        - DIAMOND_BLOCK
 
-Revive: true
-# "Revive" is when a player uses the reviveItem
-
-WithdrawCm: true
-# Withdraw can be used as hearts to give other players and crafting recipe's!
-
-MaxHealthPoints: 40  # Maximum health points for players
-# MaxHealthPoints determines the maximum health a player can have on your server.
-
-# HealthPoints:
-# 1 heart is equivalent to 2 health points, so with a value of 40, players
-# have a maximum of 20 hearts. The same with ReviveHealth.
-
-ReviveHealth: 10  # Health granted upon Revive (5 normal hearts!).
-
-Use/EquipHearts: true  # Enable or disable the use and equipping of hearts
-
-# ==Lore&Names==
-HeartLore: "right click to equip/use hearts"
-HeartName: 'Heart'
-
-# Revive item Name is the name of the item!
-ReviveItemName: "Revive-Item"
-# Revive Item Lore is the lore of the item, if you don't know what lore is, it's the message under the Name and is often purple
-ReviveItemLore: "Rename this book with the player(s) name you want to Revive"
-
-# ==Message(s)==
-
-YouDontHaveEnoughHearts: "You don't have enough Hearts to withdraw"
-
-DisabledInConfigMsg: "This is disabled in the config!"
-
-SuccessWithDraw:  "Successfully withdrew "
-
-CantUseBannedItem: " " #Nothing
-
-ReviveAnnouncement: " has just revived: "
-
-EliminatedBanMsg: "Eliminated"
-EliminatedBanMsgAfter1: "Ran out of lives."
-
-# YouCantGoOverMaxHearts is when you try to use the Hearts, but is at maximum hearts.
-YouCantGoOverMaxHearts: "Hey, you cant go over "
-YouCantGoOverMaxHearts2: " Hearts"
-
-# ==Recipe(s)==
-CustomRecipes: true  # Enables the crafting recipes.
-
-HeartRecipe: true  # Enable crafting of hearts (DO NOT enabled if the CustomRecipes is false).
-ReviveRecipe: true  # Enable crafting of revival item (DO NOT enabled if the CustomRecipes is false).
-
-# ==BanItem(s)==
-
-TNTminecart: true  # Allow the use of TNT mine-carts.
-EndCrystal: true  # Allow the use of End Crystals.
-RespawnAnchors: true  # Allow the use of Respawn Anchors.
-Over32GoldenApples: true  # Allow players to have more than 32 golden apples.
-Trident: true  # Allow the use/pickup of tridents.
-Netherite: true  # Allow the use of Netherite items.
-Totems: true  # Allow Totem of Undying.
-NoThornsEnchantMent: false  # Disable the Thorns enchantment.
-
-# ==Should-Not-Be-Edited==
-CoreLifestealMechanic: true
+messages:
+  prefix: "<dark_gray>[<red>Life<gold>Wars<dark_gray>]"
+  announceAdminRevive: true
+  usageError: "<red>Usage: %usage%"
+  needToBePlayer: "<red>You must be a player to use this command!"
+  playerNotFound: "<red>Player not found!"
+  disabledInConfigMsg: "<red>This feature is disabled in the config!"
+  eliminateSuccess: "<gray>You have eliminated <red>%player%<gray>!"
+  reviveSuccess: "<gray>You have revived <red>%player%<gray>!"
+  onlyReviveElimPlayers: "<red>You can only revive eliminated players!"
+  eliminatedJoin: "<red>You have no hearts left!"
+  eliminatedReason: "<dark_red>Ran out of lives."
+  setHeartsConfirmSingle: "<gray>Set <red>%player%<gray>'s hearts to <red>%amount%<gray> hearts"
+  reloadMsg: "<gray>Reloaded the plugin!"
+  noWithdraw: "<red>You will be eliminated if you withdraw one more heart!"
+  inventoryFull: "<red>Your inventory is full! You cannot withdraw!"
+  withdrawMin: "<red>You cannot withdraw less than 1 heart!"
+  successWithdraw: "<gray>You received %amount%x <red>%item%<gray>!"
+  maxHeartLimitReached: "<red>You have already reached %limit% hearts!"
+  recipeNotCraftable: "<red>You cannot craft this item!"
+  recipeNotFound: "<red>This recipe does not exist!"
+  recipeSavedActionbar: "<green>Recipe saved!"
+  configKeyNotFound: "<red>Config key not found: %key%"
+  configUpdated: "<gray>Config value <red>%key%<gray> set to <red>%value%"

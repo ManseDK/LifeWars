@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/LifeWars.iml" filepath="$PROJECT_DIR$/LifeWars.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/LifeWars.iml" filepath="$PROJECT_DIR$/.idea/LifeWars.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/LifeWars.main.iml" filepath="$PROJECT_DIR$/.idea/modules/LifeWars.main.iml" />
     </modules>
   </component>
 </project>

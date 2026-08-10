@@ -1,0 +1,46 @@
+plugins {
+    id 'java'
+}
+
+group = 'me.vitaxses'
+
+def getVersionFromPluginYml() {
+    def pluginYml = file('src/main/resources/plugin.yml')
+    if (pluginYml.exists()) {
+        def lines = pluginYml.readLines()
+        for (line in lines) {
+            if (line.startsWith('version:')) {
+                return line.split(':')[1].trim().replaceAll("'", "").replaceAll('"', "")
+            }
+        }
+    }
+    return '1.0.0'
+}
+
+version = getVersionFromPluginYml()
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    maven {
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        url = 'https://oss.sonatype.org/content/groups/public/'
+    }
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
